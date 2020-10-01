@@ -3,7 +3,7 @@ project(Lucilla)
 
 set(CMAKE_CXX_STANDARD 20)
 
-add_executable(Lucilla main.cpp)
+add_executable(Lucilla main.cpp OpenCLHelper.cpp OpenCLHelper.h ProcessArray.cpp ProcessArray.h)
 
 find_package(OpenCL REQUIRED)
 include_directories(${OpenCL_INCLUDE_DIRS})

@@ -1,16 +1,10 @@
-__kernel void HelloWorld(__global char* data)
+__kernel void HelloWorld(__global int* data)
 {
-        data[0] = 'H';
-        data[1] = 'E';
-        data[2] = 'L';
-        data[3] = 'L';
-        data[4] = 'O';
-        data[5] = ' ';
-        data[6] = 'W';
-        data[7] = 'O';
-        data[8] = 'R';
-        data[9] = 'L';
-        data[10] = 'D';
-        data[11] = '!';
-        data[12] = '\n';
+    data[0] = 1;
+    data[1] = 2;
+    data[2] = 3;
+    data[3] = 4;
+    data[4] = 5;
+    data[5] = 6;
+    data[6] = 7;
 }
