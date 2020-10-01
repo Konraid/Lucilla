@@ -1,6 +1,11 @@
 #include <iostream>
+#include <fstream>
+#include <stdio.h>
+#include <CL/cl.hpp>
 
-int main() {
-    std::cout << "Hello, World!" << std::endl;
+int main(void)
+{
+    cl::Platform platforms;
+
     return 0;
 }
