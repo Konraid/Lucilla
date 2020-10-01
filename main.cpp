@@ -59,7 +59,7 @@ int main()
         printDevicesInfo(devices);
     }
 
-    std::vector<int> vec(10);
+    std::vector<int> vec(16);
     std::fill(vec.begin(), vec.end(), 6);
 
     cl::Buffer inBuf(context, CL_MEM_READ_ONLY | CL_MEM_HOST_NO_ACCESS | CL_MEM_COPY_HOST_PTR, sizeof(int)
