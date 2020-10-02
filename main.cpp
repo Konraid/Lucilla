@@ -2,6 +2,8 @@
 #include <fstream>
 #include <stdio.h>
 #include <CL/cl.hpp>
+#include <chrono>
+#include <cmath>
 #include "OpenCLHelper.h"
 
 void printDevicesInfo(std::vector<cl::Device> devices) {
@@ -53,14 +55,16 @@ int main()
 
     cl::Context context = program.getInfo<CL_PROGRAM_CONTEXT>();
     auto devices = context.getInfo<CL_CONTEXT_DEVICES>();
-    auto& device = devices.front();
+    auto device = devices.front();
 
     if(DEBUG) {
         printDevicesInfo(devices);
     }
 
-    std::vector<int> vec(16);
+    std::vector<int> vec(std::pow(10, 9));
     std::fill(vec.begin(), vec.end(), 6);
+
+    auto t1 = std::chrono::high_resolution_clock::now();
 
     cl::Buffer inBuf(context, CL_MEM_READ_ONLY | CL_MEM_HOST_NO_ACCESS | CL_MEM_COPY_HOST_PTR, sizeof(int)
         * vec.size(), vec.data());
@@ -78,10 +82,10 @@ int main()
 
     cl::finish();
 
-
-    for (int i = 0; i<16; i++) {
-        std::cout << vec[i] << std::endl;
-    }
+    auto t2 = std::chrono::high_resolution_clock::now();
+    std::cout << "Delta t2-t1: "
+              << std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count()
+              << " nanoseconds" << std::endl;
 
     std::cin.get();
 
