@@ -12,10 +12,22 @@ int main()
     std::vector<cl::Device> devices;
     platform.getDevices(CL_DEVICE_TYPE_ALL, &devices);
 
-    std::cout << "Hello WOrld." << devices.size();
+    std::cout << "Hello World." << std::endl;
 
+    std::cout << "================================" << std::endl;
+
+    for (int i = 0; i<devices.size(); i++) {
+        auto device = devices[i];
+        auto vendor = device.getInfo<CL_DEVICE_VENDOR>();
+        auto version = device.getInfo<CL_DEVICE_VERSION>();
+        std::cout << "Vendor: " << vendor << ", Version: " << version << std::endl;
+    }
+
+    std::cout << "================================" << std::endl;
 
     auto device = devices.front();
+    auto vendor = device.getInfo<CL_DEVICE_VENDOR>();
+    auto version = device.getInfo<CL_DEVICE_VERSION>();
 
 
     std::ifstream helloWorldFile("hello.cl");
