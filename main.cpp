@@ -3,8 +3,21 @@
 #include <stdio.h>
 #include <CL/cl.hpp>
 
+void printDevicesInfo(std::vector<cl::Device> devices) {
+    std::cout << "================================================" << std::endl;
+    for (int i = 0; i<devices.size(); i++) {
+        auto device = devices[i];
+        auto vendor = device.getInfo<CL_DEVICE_VENDOR>();
+        auto version = device.getInfo<CL_DEVICE_VERSION>();
+        std::cout << "Vendor: " << vendor << ", Version: " << version << std::endl;
+    }
+    std::cout << "================================================" << std::endl;
+}
+
 int main()
 {
+    bool DEBUG = true;
+
     std::vector<cl::Platform> platforms;
     cl::Platform::get(&platforms);
 
@@ -12,25 +25,19 @@ int main()
     std::vector<cl::Device> devices;
     platform.getDevices(CL_DEVICE_TYPE_ALL, &devices);
 
-    std::cout << "Hello World." << std::endl;
+    if(DEBUG) {
+        std::cout << "Debug-Information enabled." << std::endl;
 
-    std::cout << "================================" << std::endl;
-
-    for (int i = 0; i<devices.size(); i++) {
-        auto device = devices[i];
-        auto vendor = device.getInfo<CL_DEVICE_VENDOR>();
-        auto version = device.getInfo<CL_DEVICE_VERSION>();
-        std::cout << "Vendor: " << vendor << ", Version: " << version << std::endl;
+        printDevicesInfo(devices);
     }
 
-    std::cout << "================================" << std::endl;
 
     auto device = devices.front();
     auto vendor = device.getInfo<CL_DEVICE_VENDOR>();
     auto version = device.getInfo<CL_DEVICE_VERSION>();
 
 
-    std::ifstream helloWorldFile("hello.cl");
+    std::ifstream helloWorldFile("HelloWorld.cl");
     std::string src(std::istreambuf_iterator<char>(helloWorldFile), (std::istreambuf_iterator<char>()));
 
     cl::Program::Sources sources( 1, std::make_pair(src.c_str(), src.length() + 1));
@@ -51,7 +58,7 @@ int main()
     queue.enqueueTask(kernel);
     queue.enqueueReadBuffer(memBuf, CL_TRUE, 0, sizeof(buf), buf);
 
-    std::cout << "hello";
+    std::cout << buf;
     std::cin.get();
 
 }
