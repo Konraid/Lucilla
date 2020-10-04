@@ -6,6 +6,10 @@
 #include <cmath>
 #include "OpenCLHelper.h"
 
+using std::cout;
+using std::endl;
+
+
 void printDevicesInfo(std::vector<cl::Device> devices) {
     std::cout << "================================================" << std::endl;
     for (int i = 0; i<devices.size(); i++) {
@@ -15,6 +19,72 @@ void printDevicesInfo(std::vector<cl::Device> devices) {
         std::cout << "Vendor: " << vendor << ", Version: " << version << std::endl;
     }
     std::cout << "================================================" << std::endl;
+}
+
+void printInfo() {
+    std::vector<cl::Platform> platforms;
+    cl::Platform::get(&platforms);
+
+    std::cout << "Found " << platforms.size() << " platforms." << std::endl;
+    for (int i = 0; i < platforms.size(); ++i) {
+        cl::Platform platform = platforms[i];
+        auto profile =  platform.getInfo<CL_PLATFORM_PROFILE>();
+        auto version =  platform.getInfo<CL_PLATFORM_VERSION>();
+        auto name =  platform.getInfo<CL_PLATFORM_NAME>();
+        auto vendor =  platform.getInfo<CL_PLATFORM_VENDOR>();
+        auto extensions =  platform.getInfo<CL_PLATFORM_EXTENSIONS>();
+
+        std::cout << "========================================================" << std::endl;
+        std::cout << "Platform_ID: " << i << std::endl;
+        std::cout << "Profile: " << profile << std::endl;
+        std::cout << "Version: " << version << std::endl;
+        std::cout << "Name: " << name << std::endl;
+        std::cout << "Vendor: " << vendor << std::endl;
+        std::cout << "Extensions: " << extensions << std::endl << std::endl;
+
+        std::vector<cl::Device> devices;
+        platform.getDevices(CL_DEVICE_TYPE_ALL, &devices);
+
+        std::cout << "Found " << devices.size() << " devices." << std::endl;
+
+        for (int j = 0; j < devices.size(); ++j) {
+
+            cl::Device device = devices[j];
+
+            auto type = device.getInfo<CL_DEVICE_TYPE>();
+            auto vendor = device.getInfo<CL_DEVICE_VENDOR>();
+            auto vendor_id = device.getInfo<CL_DEVICE_VENDOR_ID>();
+            auto name = device.getInfo<CL_DEVICE_NAME>();
+            auto driver_version = device.getInfo<CL_DEVICE_VERSION>();
+            auto max_compute_units = device.getInfo<CL_DEVICE_MAX_COMPUTE_UNITS>();
+            auto max_work_item_units = device.getInfo<CL_DEVICE_MAX_WORK_ITEM_SIZES>();
+            auto max_work_group_units = device.getInfo<CL_DEVICE_MAX_WORK_GROUP_SIZE>();
+            auto max_work_clock_freq = device.getInfo<CL_DEVICE_MAX_CLOCK_FREQUENCY>();
+            auto max_work_mem_alloc_size = device.getInfo<CL_DEVICE_MAX_MEM_ALLOC_SIZE>();
+            auto fp_config = device.getInfo<CL_DEVICE_DOUBLE_FP_CONFIG>();
+            auto glob_mem_cache_type = device.getInfo<CL_DEVICE_GLOBAL_MEM_CACHE_TYPE>();
+            auto built_in_kernels = device.getInfo<CL_DEVICE_BUILT_IN_KERNELS>();
+
+            std::cout << "---------------------------------------------------------" << std::endl;
+            std::cout << "Device_ID: " << j << std::endl;
+            std::cout << "Type: " << type << std::endl;
+            std::cout << "Vendor: " << vendor << std::endl;
+            std::cout << "Vendor_ID: " << vendor_id << std::endl;
+            std::cout << "Name: " << name << std::endl;
+            std::cout << "Driver_Version: " << driver_version << std::endl;
+            std::cout << "CL_DEVICE_MAX_COMPUTE_UNITS: " << max_compute_units << std::endl;
+            //std::cout << "CL_DEVICE_MAX_WORK_ITEM_SIZES: " << max_work_item_units << std::endl;
+            std::cout << "CL_DEVICE_MAX_WORK_GROUP_SIZE: " << max_work_group_units << std::endl;
+            std::cout << "Max Work Clock Freq: " << max_work_clock_freq << std::endl;
+            std::cout << "CL_DEVICE_MAX_MEM_ALLOC_SIZE: " << max_work_mem_alloc_size << std::endl;
+            std::cout << "CL_DEVICE_DOUBLE_FP_CONFIG: " << fp_config << std::endl;
+            std::cout << "CL_DEVICE_GLOBAL_MEM_CACHE_TYPE: " << glob_mem_cache_type << std::endl;
+            std::cout << "CL_DEVICE_BUILT_IN_KERNELS: " << built_in_kernels << std::endl;
+
+        }
+
+    }
+    
 }
 
 void memTest() {
@@ -61,8 +131,8 @@ int main()
         printDevicesInfo(devices);
     }
 
-    std::vector<int> vec(std::pow(10, 9));
-    std::fill(vec.begin(), vec.end(), 6);
+    std::vector<int> vec(std::pow(10, 7));
+    //std::fill(vec.begin(), vec.end(), 6);
 
     auto t1 = std::chrono::high_resolution_clock::now();
 
@@ -76,17 +146,16 @@ int main()
     kernel.setArg(1, outBuf);
 
     cl::CommandQueue queue(context, device);
-    //queue.enqueueFillBuffer(inBuf, cl::patt)
+    queue.enqueueFillBuffer(inBuf, 3, 0, sizeof(int) * vec.size());
     queue.enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(vec.size()));
     queue.enqueueReadBuffer(outBuf, CL_TRUE, 0, sizeof(int) * vec.size(), vec.data());
 
     cl::finish();
 
+    for (int i = 0; i < 10; ++i) {
+        std::cout << vec[i] << std::endl;
+    }
+
     auto t2 = std::chrono::high_resolution_clock::now();
-    std::cout << "Delta t2-t1: "
-              << std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count()
-              << " nanoseconds" << std::endl;
-
-    std::cin.get();
-
+    std::cout << "Runtime: " << std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count() << "ms." << std::endl;
 }

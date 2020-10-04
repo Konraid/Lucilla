@@ -19,6 +19,10 @@ cl::Program CreateProgram(const std::string& file) {
     cl::Context context(device);
     cl::Program program(context, sources);
 
-    program.build("-cl-std=CL1.2");
+    if (program.build() != CL_SUCCESS) {
+        std::cout << "Error building: " << program.getBuildInfo<CL_PROGRAM_BUILD_LOG>(device) << std::endl;
+        exit(1);
+    }
+
     return program;
 }
