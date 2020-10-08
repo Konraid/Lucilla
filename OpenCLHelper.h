@@ -1,5 +1,6 @@
 #ifndef LUCILLA_OPENCLHELPER_H
 #define LUCILLA_OPENCLHELPER_H
+#define __CL_ENABLE_EXCEPTIONS
 
 #include "OpenCLHelper.h"
 #include <string>

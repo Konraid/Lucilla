@@ -1,3 +1,5 @@
+#define __CL_ENABLE_EXCEPTIONS                                      // For debug information in kernel files
+
 #include <iostream>
 #include <fstream>
 #include <stdio.h>
@@ -5,6 +7,7 @@
 #include <chrono>
 #include <cmath>
 #include "OpenCLHelper.h"
+#include "Constants.h"
 
 using std::cout;
 using std::endl;
@@ -90,7 +93,7 @@ void printInfo() {
 void memTest() {
     bool DEBUG = true;
 
-    cl::Program program = CreateProgram("../HelloWorld.cl");
+    cl::Program program = CreateProgram("kernels/HelloWorld.cl");
 
     cl::Context context = program.getInfo<CL_PROGRAM_CONTEXT>();
     auto devices = context.getInfo<CL_CONTEXT_DEVICES>();
@@ -117,44 +120,116 @@ void memTest() {
     std::cin.get();
 }
 
-int main()
-{
-    bool DEBUG = true;
+int lightCalc(float lightWaveLength, float gratingWaveLength, float positions[10], float cStepWith, float bStepWith, bool DEBUG = false) {
+    // print Information
+    std::cout << "Starting lightsimulation version " << constants::VERSION << std::endl;
 
-    cl::Program program = CreateProgram("../ProcessArray.cl");
+    cl::Program program = CreateProgram("kernels/CalculateLight.cl");
 
     cl::Context context = program.getInfo<CL_PROGRAM_CONTEXT>();
     auto devices = context.getInfo<CL_CONTEXT_DEVICES>();
     auto device = devices.front();
 
-    if(DEBUG) {
-        printDevicesInfo(devices);
-    }
 
-    std::vector<int> vec(std::pow(10, 7));
-    //std::fill(vec.begin(), vec.end(), 6);
+    float lightSpeed = 299792458;
+    float omega = 2 * M_PI * lightSpeed / lightWaveLength;
 
-    auto t1 = std::chrono::high_resolution_clock::now();
+    int cOffset = 6;
+    float cStartX = positions[cOffset];
+    float cStartY = positions[cOffset+1];
+    float cEndX = positions[cOffset+2];
+    float cEndY = positions[cOffset+3];
 
-    cl::Buffer inBuf(context, CL_MEM_READ_ONLY | CL_MEM_HOST_NO_ACCESS | CL_MEM_COPY_HOST_PTR, sizeof(int)
-        * vec.size(), vec.data());
+    float cLength = sqrt(pow(cStartX-cEndX, 2)+pow(cStartY-cEndY, 2));
+    long numCOperations = cLength / cStepWith;                                                     // TODO check for no overflow
+    std::vector<float> vec(numCOperations);
 
-    cl::Buffer outBuf(context, CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY, sizeof(int)
-                                                                                                 * vec.size());
-    cl::Kernel kernel(program, "ProcessArray");
-    kernel.setArg(0, inBuf);
-    kernel.setArg(1, outBuf);
+    std::cout << "Calculations for each B: " << numCOperations << ", " << (float) numCOperations/INT32_MAX * 100 << "%." << std::endl;
+
+    cl::Buffer inBuf(context, CL_MEM_READ_ONLY | CL_MEM_HOST_NO_ACCESS | CL_MEM_COPY_HOST_PTR, sizeof(float) * 10, positions);
+    cl::Buffer outBuf(context, CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY, sizeof(float) * vec.size());
+    cl::Kernel kernel(program, "CalculateLight");
+
+    kernel.setArg(0, outBuf);
+    kernel.setArg(1, inBuf);
+    kernel.setArg(2, sizeof(omega), &omega);
+    kernel.setArg(3, sizeof(gratingWaveLength), &gratingWaveLength);
+    kernel.setArg(4, sizeof(cStepWith), &cStepWith);
+    kernel.setArg(5, sizeof(numCOperations), &numCOperations);
 
     cl::CommandQueue queue(context, device);
-    queue.enqueueFillBuffer(inBuf, 3, 0, sizeof(int) * vec.size());
     queue.enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(vec.size()));
-    queue.enqueueReadBuffer(outBuf, CL_TRUE, 0, sizeof(int) * vec.size(), vec.data());
+    queue.enqueueReadBuffer(outBuf, CL_TRUE, 0, sizeof(float) * vec.size(), vec.data());
 
     cl::finish();
 
-    for (int i = 0; i < 10; ++i) {
+    /*for (int i = 0; i < 20; ++i) {
         std::cout << vec[i] << std::endl;
+    }*/
+
+    // Keeping old stuff for reference
+    return 1;
+
+    while (0) {
+        cl::Program program = CreateProgram("../ProcessArray.cl");
+
+        cl::Context context = program.getInfo<CL_PROGRAM_CONTEXT>();
+        auto devices = context.getInfo<CL_CONTEXT_DEVICES>();
+        auto device = devices.front();
+
+        std::vector<int> vec(std::pow(10, 7));
+        //std::fill(vec.begin(), vec.end(), 6);
+
+        cl::Buffer inBuf(context, CL_MEM_READ_ONLY | CL_MEM_HOST_NO_ACCESS | CL_MEM_COPY_HOST_PTR, sizeof(int)
+                                                                                                   * vec.size(), vec.data());
+
+        cl::Buffer outBuf(context, CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY, sizeof(int)
+                                                                              * vec.size());
+        cl::Kernel kernel(program, "ProcessArray");
+        kernel.setArg(0, inBuf);
+        kernel.setArg(1, outBuf);
+
+        cl::CommandQueue queue(context, device);
+        queue.enqueueFillBuffer(inBuf, 3, 0, sizeof(int) * vec.size());
+        queue.enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(vec.size()));
+        queue.enqueueReadBuffer(outBuf, CL_TRUE, 0, sizeof(int) * vec.size(), vec.data());
+
+        cl::finish();
+
+        for (int i = 0; i < 10; ++i) {
+            std::cout << vec[i] << std::endl;
+        }
     }
+
+}
+
+int main()
+{
+    bool DEBUG = false;
+    float lightWaveLength = 420 * pow(10, -9);                              // Set default light wavelength to 420 nm
+    float gratingWaveLength = 1 * pow(10, -6);                              // Set default grating waveLength to 1 µm
+    float cStepWith = 1 * pow(10, -9);                                     // set default c steps to 1 nm
+    float bStepWith = 1 * pow(10, -3);                                      // set default b steps to 1 mm
+
+    float positions[10];
+    positions[0] = 0.f;                                                             // light source / A x coordinate
+    positions[1] = 1.f;                                                             // light source / A y coordinate
+    positions[2] = 0.2f;                                                            // B start x coordinate
+    positions[3] = 1.f;                                                             // B start y coordinate
+    positions[4] = -0.2f;                                                           // B end x coordinate
+    positions[5] = 1.f;                                                             // B end y coordinate
+    positions[6] = 0.5f;                                                            // C start x coordinate
+    positions[7] = 1.f;                                                             // C start y coordinate
+    positions[8] = -positions[6];                                                           // C end x coordinate
+    positions[9] = 1.f;                                                             // C end y coordinate
+
+    if(DEBUG) {
+        printInfo();
+    }
+
+    auto t1 = std::chrono::high_resolution_clock::now();
+
+    lightCalc(lightWaveLength, gratingWaveLength, positions, cStepWith, bStepWith, DEBUG);
 
     auto t2 = std::chrono::high_resolution_clock::now();
     std::cout << "Runtime: " << std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count() << "ms." << std::endl;
